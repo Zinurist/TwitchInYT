@@ -42,6 +42,13 @@
     return document.querySelector('ytd-live-chat-frame');
   }
 
+  function getChatHeight() {
+    const chatFrame = document.querySelector('#chat');
+    const chatRenderer = document.querySelector('ytd-live-chat-frame');
+
+    return Math.max(chatFrame?.clientHeight || 0, chatRenderer?.clientHeight || 0);
+  }
+
   async function getChatContainerWithRetry() {
     for (let attempt = 0; attempt < AUTO_LOAD_ATTEMPTS; attempt += 1) {
       const chatContainer = getChatContainer();
@@ -51,10 +58,6 @@
     }
 
     return null;
-  }
-
-  function getVideoHeight() {
-    return document.querySelector('video')?.clientHeight || 600;
   }
 
   function isDarkMode() {
@@ -121,11 +124,15 @@
     iframe.style.flex = '1 1 auto';
     iframe.style.width = '100%';
     iframe.style.height = '100%';
+    iframe.style.minHeight = '0';
 
+    const chatHeight = getChatHeight();
     chatContainer.replaceChildren(iframe);
     chatContainer.style.display = 'flex';
     chatContainer.style.flexDirection = 'row';
-    chatContainer.style.height = `${getVideoHeight()}px`;
+    chatContainer.style.height = chatHeight ? `${chatHeight}px` : 'calc(100vh - 56px)';
+    chatContainer.style.minHeight = '0';
+    chatContainer.style.overflow = 'hidden';
 
     return true;
   }
