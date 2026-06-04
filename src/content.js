@@ -15,7 +15,8 @@
   };
 
   const TWITCH_USERNAME_PATTERN = /^[a-zA-Z0-9_]{3,25}$/;
-  const DOUBLE_CLICK_WINDOW_MS = 2000;
+  const AUTO_LOAD_ATTEMPTS = 20;
+  const AUTO_LOAD_RETRY_MS = 500;
 
   function getYoutubeChannelName() {
     const selectors = [
@@ -39,6 +40,17 @@
 
   function getChatContainer() {
     return document.querySelector('ytd-live-chat-frame');
+  }
+
+  async function getChatContainerWithRetry() {
+    for (let attempt = 0; attempt < AUTO_LOAD_ATTEMPTS; attempt += 1) {
+      const chatContainer = getChatContainer();
+      if (chatContainer) return chatContainer;
+
+      await new Promise((resolve) => setTimeout(resolve, AUTO_LOAD_RETRY_MS));
+    }
+
+    return null;
   }
 
   function getVideoHeight() {
@@ -73,6 +85,10 @@
     return chrome.storage.local.set(values);
   }
 
+  function storageRemove(key) {
+    return chrome.storage.local.remove(key);
+  }
+
   function promptForTwitchUsername(existingUsername) {
     const value = window.prompt(
       'Enter the Twitch username to show on this YouTube page:',
@@ -90,11 +106,11 @@
     return username;
   }
 
-  function showTwitchChat(username) {
+  function showTwitchChat(username, options = {}) {
     const chatContainer = getChatContainer();
     if (!chatContainer) {
-      window.alert('Could not find YouTube live chat on this page.');
-      return;
+      if (!options.silent) window.alert('Could not find YouTube live chat on this page.');
+      return false;
     }
 
     const iframe = document.createElement('iframe');
@@ -110,36 +126,74 @@
     chatContainer.style.display = 'flex';
     chatContainer.style.flexDirection = 'row';
     chatContainer.style.height = `${getVideoHeight()}px`;
+
+    return true;
   }
 
-  async function run() {
+  async function getYoutubeChannelNameWithRetry() {
+    for (let attempt = 0; attempt < AUTO_LOAD_ATTEMPTS; attempt += 1) {
+      const youtubeChannelName = getYoutubeChannelName();
+      if (youtubeChannelName) return youtubeChannelName;
+
+      await new Promise((resolve) => setTimeout(resolve, AUTO_LOAD_RETRY_MS));
+    }
+
+    return null;
+  }
+
+  async function autoLoadSavedChat() {
+    const youtubeChannelName = await getYoutubeChannelNameWithRetry();
+    if (!youtubeChannelName) return;
+
+    const storedUsername = await storageGet(youtubeChannelName);
+    if (!storedUsername) return;
+
+    const chatContainer = await getChatContainerWithRetry();
+    if (chatContainer) showTwitchChat(storedUsername, { silent: true });
+  }
+
+  async function toggleSavedChat() {
     const youtubeChannelName = getYoutubeChannelName();
     if (!youtubeChannelName) {
       window.alert('Could not detect the YouTube channel handle on this page.');
       return;
     }
 
-    const now = Date.now();
-    const lastClick = Number(await storageGet('__lastClickTimestamp')) || 0;
-    await storageSet({ __lastClickTimestamp: now });
-
     const storedUsername = await storageGet(youtubeChannelName);
-    const defaultUsername = DEFAULT_CHANNEL_MAP[youtubeChannelName];
-    let username = storedUsername || defaultUsername;
-
-    if (now - lastClick < DOUBLE_CLICK_WINDOW_MS || !username) {
-      const promptedUsername = promptForTwitchUsername(username);
-      if (!promptedUsername) return;
-
-      username = promptedUsername;
-      await storageSet({ [youtubeChannelName]: username });
+    if (storedUsername) {
+      await storageRemove(youtubeChannelName);
+      window.alert(`Cleared saved Twitch chat for @${youtubeChannelName}.`);
+      window.location.reload();
+      return;
     }
+
+    const defaultUsername = DEFAULT_CHANNEL_MAP[youtubeChannelName];
+    const username = promptForTwitchUsername(defaultUsername);
+    if (!username) return;
+
+    await storageSet({ [youtubeChannelName]: username });
 
     showTwitchChat(username);
   }
 
-  run().catch((error) => {
-    console.error('Twitch Chat for YouTube - Local failed:', error);
-    window.alert('Failed to load Twitch chat. Check the console for details.');
+  chrome.runtime.onMessage.addListener((message) => {
+    if (message?.type !== 'toggle-saved-chat') return false;
+
+    toggleSavedChat().catch((error) => {
+      console.error('Twitch Chat for YouTube - Local failed:', error);
+      window.alert('Failed to update Twitch chat. Check the console for details.');
+    });
+
+    return false;
+  });
+
+  autoLoadSavedChat().catch((error) => {
+    console.error('Twitch Chat for YouTube - Local auto-load failed:', error);
+  });
+
+  document.addEventListener('yt-navigate-finish', () => {
+    autoLoadSavedChat().catch((error) => {
+      console.error('Twitch Chat for YouTube - Local auto-load failed:', error);
+    });
   });
 })();

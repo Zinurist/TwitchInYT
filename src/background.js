@@ -5,8 +5,7 @@ chrome.action.onClicked.addListener(async (tab) => {
   const isYoutube = url.hostname === 'youtube.com' || url.hostname.endsWith('.youtube.com');
   if (!isYoutube) return;
 
-  await chrome.scripting.executeScript({
-    target: { tabId: tab.id },
-    files: ['src/content.js'],
+  await chrome.tabs.sendMessage(tab.id, {
+    type: 'toggle-saved-chat',
   });
 });

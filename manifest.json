@@ -2,12 +2,19 @@
   "manifest_version": 3,
   "name": "Twitch Chat for YouTube - Local",
   "version": "1.0.0",
-  "description": "Replace YouTube live chat with a Twitch chat iframe when you click the extension icon.",
+  "description": "Automatically replace YouTube live chat with saved Twitch chats.",
   "action": {
-    "default_title": "Load Twitch chat on this YouTube page"
+    "default_title": "Save or clear Twitch chat for this YouTube channel"
   },
-  "permissions": ["activeTab", "scripting", "storage"],
+  "permissions": ["activeTab", "storage"],
   "background": {
     "service_worker": "src/background.js"
-  }
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://www.youtube.com/*", "*://youtube.com/*"],
+      "js": ["src/content.js"],
+      "run_at": "document_idle"
+    }
+  ]
 }

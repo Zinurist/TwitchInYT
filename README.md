@@ -1,6 +1,6 @@
 # Twitch Chat for YouTube - Local
 
-A local, unpacked Chrome extension that replaces YouTube live chat with a Twitch chat iframe when you click the extension icon.
+A local, unpacked Chrome extension that replaces YouTube live chat with a Twitch chat iframe for YouTube channels you save.
 
 This version does not use the Chrome Web Store, does not include an `update_url`, and does not fetch channel mappings from GitHub at runtime.
 
@@ -18,9 +18,10 @@ Chrome will load the local extension. Because it is unpacked and has no `update_
 
 1. Open a YouTube live page that has a chat panel.
 2. Click the extension icon.
-3. If the YouTube channel is in the built-in mapping, Twitch chat loads automatically.
-4. If no mapping exists, enter the Twitch username when prompted.
-5. Click the icon twice within 2 seconds to change the saved Twitch username for that YouTube channel.
+3. Enter the Twitch username for that YouTube channel.
+4. The mapping is saved locally.
+5. Future visits to that saved YouTube channel replace chat automatically.
+6. Click the extension icon again on a saved channel to clear the saved mapping and reload the page.
 
 ## Edit Channel Mappings
 
@@ -39,8 +40,7 @@ After editing, go to `chrome://extensions` and click the reload button on the ex
 
 ## Permissions
 
-- `activeTab`: allows the extension to work only on the tab where you click the icon.
-- `scripting`: injects the local content script after you click the icon.
+- `activeTab`: allows the extension icon click to affect the current tab.
 - `storage`: saves Twitch usernames you choose for YouTube channels.
 
-There are no broad host permissions, no cookie permission, and no remote code loading.
+The content script runs on YouTube pages so saved mappings can load automatically. There is no cookie permission and no remote code loading.
