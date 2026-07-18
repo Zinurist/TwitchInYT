@@ -1,5 +1,7 @@
 # Twitch Chat for YouTube - Local
 
+> **About this version:** This extension was created with AI, using an existing published extension as a functional reference — most likely [Twitch Chat for YouTube™](https://chromewebstore.google.com/detail/twitch-chat-for-youtube/dclboeblcnmjpihibhhkmbbdkiaalofl), though I'm not certain which one it was. The goal was to have my own local copy where **I control the code and any updates**, rather than depending on a Web Store extension that can auto-update at any time. For security, I'd recommend anyone using a small utility extension like this do the same: keep a local, unpacked copy you can read and update yourself.
+
 A local, unpacked Chrome extension that replaces YouTube live chat with a Twitch chat iframe for YouTube channels you save.
 
 This version does not use the Chrome Web Store, does not include an `update_url`, and does not fetch channel mappings from GitHub at runtime.
