@@ -42,11 +42,41 @@
     return document.querySelector('ytd-live-chat-frame');
   }
 
-  function getChatHeight() {
-    const chatFrame = document.querySelector('#chat');
-    const chatRenderer = document.querySelector('ytd-live-chat-frame');
+  const MIN_CHAT_HEIGHT = 400;
+  const CHAT_BOTTOM_MARGIN = 16;
+  let resizeObserver = null;
+  let resizeFrame = 0;
 
-    return Math.max(chatFrame?.clientHeight || 0, chatRenderer?.clientHeight || 0);
+  function fitChatToViewport() {
+    const chatContainer = getChatContainer();
+    if (!chatContainer || !chatContainer.querySelector('#local-twitch-chat-for-youtube')) return;
+
+    // Distance from the top of the page to the chat, so scrolling doesn't change the result.
+    const top = chatContainer.getBoundingClientRect().top + window.scrollY;
+    const available = window.innerHeight - top - CHAT_BOTTOM_MARGIN;
+    chatContainer.style.height = `${Math.max(available, MIN_CHAT_HEIGHT)}px`;
+  }
+
+  function scheduleFit() {
+    if (resizeFrame) return;
+    resizeFrame = requestAnimationFrame(() => {
+      resizeFrame = 0;
+      fitChatToViewport();
+    });
+  }
+
+  function watchLayout() {
+    if (!resizeObserver) {
+      window.addEventListener('resize', scheduleFit);
+      resizeObserver = new ResizeObserver(scheduleFit);
+    }
+
+    // Re-fit when the page layout changes (theater mode, one/two-column switch, etc.).
+    resizeObserver.disconnect();
+    for (const selector of ['ytd-watch-flexy', '#player-container', '#columns']) {
+      const element = document.querySelector(selector);
+      if (element) resizeObserver.observe(element);
+    }
   }
 
   async function getChatContainerWithRetry() {
@@ -126,13 +156,15 @@
     iframe.style.height = '100%';
     iframe.style.minHeight = '0';
 
-    const chatHeight = getChatHeight();
     chatContainer.replaceChildren(iframe);
     chatContainer.style.display = 'flex';
     chatContainer.style.flexDirection = 'row';
-    chatContainer.style.height = chatHeight ? `${chatHeight}px` : 'calc(100vh - 56px)';
+    chatContainer.style.maxHeight = 'none';
     chatContainer.style.minHeight = '0';
     chatContainer.style.overflow = 'hidden';
+
+    fitChatToViewport();
+    watchLayout();
 
     return true;
   }
